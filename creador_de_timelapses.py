@@ -269,7 +269,7 @@ class TimelapseApp(ctk.CTk):
         speed_header = ctk.CTkFrame(self.slider_container, fg_color="transparent")
         speed_header.pack(fill=ctk.X, pady=(0, 5))
         ctk.CTkLabel(speed_header, text="Velocidad:", font=ctk.CTkFont(family="Google Sans", weight="bold")).pack(side=ctk.LEFT)
-        self.speed_val_label = ctk.CTkLabel(speed_header, text="20.0x", font=ctk.CTkFont(family="Google Sans", weight="bold"), text_color=ACCENT_COLOR)
+        self.speed_val_label = ctk.CTkLabel(speed_header, text="20.0x", width=60, anchor="w", font=ctk.CTkFont(family="Google Sans", weight="bold"), text_color=ACCENT_COLOR)
         self.speed_val_label.pack(side=ctk.LEFT, padx=10)
         self.audio_check = ctk.CTkSwitch(speed_header, text="Silenciar audio", variable=self.mute_audio, font=ctk.CTkFont(family="Google Sans", size=12))
         self.audio_check.pack(side=ctk.RIGHT)
@@ -311,7 +311,7 @@ class TimelapseApp(ctk.CTk):
         self.summary_label.pack(side=ctk.LEFT)
         
         self.est_time_label = ctk.CTkLabel(stats_frame_top, text="Tiempo estimado: --:--:--", font=ctk.CTkFont(family="Google Sans", size=12, slant="italic", weight="bold"), text_color=ACCENT_COLOR)
-        self.est_time_label.pack(side=ctk.RIGHT, padx=(10, 0))
+        self.est_time_label.pack(side=ctk.RIGHT, padx=(10, 15))
 
         tree_container = ctk.CTkFrame(list_card.content, fg_color="transparent")
         tree_container.pack(fill=ctk.BOTH, expand=True, pady=(0, 5))
