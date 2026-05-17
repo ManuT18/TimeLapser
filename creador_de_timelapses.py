@@ -310,7 +310,7 @@ class TimelapseApp(ctk.CTk):
         self.summary_label = ctk.CTkLabel(stats_frame_top, text="Esperando carpeta...", font=ctk.CTkFont(family="Google Sans", weight="bold"), text_color=FG_MUTED)
         self.summary_label.pack(side=ctk.LEFT)
         
-        self.est_time_label = ctk.CTkLabel(stats_frame_top, text="Tiempo estimado: --:--:--", font=ctk.CTkFont(family="Google Sans", size=12, slant="italic", weight="bold"), text_color=ACCENT_COLOR)
+        self.est_time_label = ctk.CTkLabel(stats_frame_top, text="Tiempo estimado: --:--:--  ", font=ctk.CTkFont(family="Google Sans", size=12, slant="italic", weight="bold"), text_color=ACCENT_COLOR)
         self.est_time_label.pack(side=ctk.RIGHT, padx=(10, 15))
 
         tree_container = ctk.CTkFrame(list_card.content, fg_color="transparent")
@@ -319,7 +319,7 @@ class TimelapseApp(ctk.CTk):
         self.tree_scroll = ctk.CTkScrollbar(tree_container)
         self.tree_scroll.pack(side=ctk.RIGHT, fill=ctk.Y)
         
-        self.tree = ttk.Treeview(tree_container, columns=("Index", "Subfolder", "Filename", "Fullpath"), show="headings", yscrollcommand=self.tree_scroll.set)
+        self.tree = ttk.Treeview(tree_container, columns=("Index", "Subfolder", "Filename", "Fullpath"), show="headings", yscrollcommand=self.tree_scroll.set, height=6)
         self.tree_scroll.configure(command=self.tree.yview)
         self.tree.heading("Index", text="#", anchor=tk.W)
         self.tree.heading("Subfolder", text="Carpeta de Origen", anchor=tk.W)
@@ -342,14 +342,18 @@ class TimelapseApp(ctk.CTk):
         console_container = ctk.CTkFrame(bottom_split, fg_color="transparent")
         console_container.pack(side=ctk.LEFT, fill=ctk.BOTH, expand=True, padx=(0, 15))
         
-        self.console_text = tk.Text(console_container, height=8, bg=CONSOLE_BG, fg=CONSOLE_FG, font=("Consolas", 10), relief=tk.FLAT, padx=12, pady=12, insertbackground="white")
+        self.console_text = tk.Text(console_container, height=12, bg=CONSOLE_BG, fg=CONSOLE_FG, font=("Consolas", 10), relief=tk.FLAT, padx=12, pady=12, insertbackground="white")
         self.console_text.pack(fill=ctk.BOTH, expand=True)
         
-        self.console_text.tag_config("info", foreground="#8AB4F8")
-        self.console_text.tag_config("warning", foreground="#FDD663")
-        self.console_text.tag_config("error", foreground="#F28B82")
-        self.console_text.tag_config("success", foreground="#81C995")
-        self.console_text.tag_config("ffmpeg", foreground="#D7AEFB")
+        self.console_text.tag_config("header", foreground="#FF3399", font=("Consolas", 10, "bold"))
+        self.console_text.tag_config("info", foreground="#3399FF")
+        self.console_text.tag_config("warning", foreground="#FFCC00", font=("Consolas", 10, "bold"))
+        self.console_text.tag_config("error", foreground="#FF3333", font=("Consolas", 10, "bold"))
+        self.console_text.tag_config("success", foreground="#00FF66", font=("Consolas", 10, "bold"))
+        self.console_text.tag_config("action", foreground="#CC33FF", font=("Consolas", 10, "bold"))
+        self.console_text.tag_config("ffmpeg_dashboard", foreground="#00FFFF")
+        self.console_text.tag_config("ffmpeg_log", foreground="#FFB366")
+        self.console_text.tag_config("default", foreground="#E8EAED")
         
         prog_eta_frame = ctk.CTkFrame(console_container, fg_color="transparent")
         prog_eta_frame.pack(fill=ctk.X, pady=(10, 0))
@@ -442,23 +446,33 @@ class TimelapseApp(ctk.CTk):
     def console_write(self, text):
         """Escribe un mensaje de forma segura en la consola interna de texto con etiquetas de color."""
         self.console_text.config(state=tk.NORMAL)
-        start_idx = self.console_text.index("end - 1c")
-        self.console_text.insert(tk.END, text)
-        end_idx = self.console_text.index("end - 1c")
         
-        if "[Info]" in text or "Escaneando" in text or "detectaron" in text:
-            self.console_text.tag_add("info", start_idx, end_idx)
-        elif "[ADVERTENCIA]" in text or "WARNING" in text:
-            self.console_text.tag_add("warning", start_idx, end_idx)
-        elif "[Error]" in text or "[Fallo Técnico]" in text or "Failed" in text or "error:" in text.lower():
-            self.console_text.tag_add("error", start_idx, end_idx)
-        elif "[ÉXITO]" in text or "correctamente" in text or "completado" in text:
-            self.console_text.tag_add("success", start_idx, end_idx)
-        elif "[FFmpeg]" in text or "Ejecutando:" in text or "Tiempo estimado:" in text or "frame=" in text or "fps=" in text or "size=" in text or "Procesando..." in text:
-            self.console_text.tag_add("ffmpeg", start_idx, end_idx)
-        else:
-            self.console_text.tag_add("ffmpeg", start_idx, end_idx)
+        lines = text.splitlines(keepends=True)
+        for line in lines:
+            start_idx = self.console_text.index("end - 1c")
+            self.console_text.insert(tk.END, line)
+            end_idx = self.console_text.index("end - 1c")
             
+            # Match rules
+            if line.strip().startswith("==="):
+                self.console_text.tag_add("header", start_idx, end_idx)
+            elif "[Info]" in line:
+                self.console_text.tag_add("info", start_idx, end_idx)
+            elif "[ADVERTENCIA]" in line or "WARNING" in line:
+                self.console_text.tag_add("warning", start_idx, end_idx)
+            elif "[Error]" in line or "[Fallo Técnico]" in line or "Failed" in line or "error:" in line.lower():
+                self.console_text.tag_add("error", start_idx, end_idx)
+            elif "[ÉXITO]" in line or "correctamente" in line or "completado" in line:
+                self.console_text.tag_add("success", start_idx, end_idx)
+            elif "[Acción]" in line:
+                self.console_text.tag_add("action", start_idx, end_idx)
+            elif "frame=" in line or "fps=" in line or "size=" in line or "time=" in line or "speed=" in line:
+                self.console_text.tag_add("ffmpeg_dashboard", start_idx, end_idx)
+            elif "[FFmpeg]" in line or "Ejecutando:" in line or "Procesando..." in line:
+                self.console_text.tag_add("ffmpeg_log", start_idx, end_idx)
+            else:
+                self.console_text.tag_add("default", start_idx, end_idx)
+                
         self.console_text.see(tk.END)
         self.console_text.config(state=tk.DISABLED)
 
