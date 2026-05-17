@@ -255,7 +255,7 @@ class TimelapseApp(ctk.CTk):
         self.audio_check = ctk.CTkSwitch(speed_header, text="Silenciar audio", variable=self.mute_audio, font=ctk.CTkFont(family="Google Sans", size=12))
         self.audio_check.pack(side=ctk.RIGHT)
         
-        self.speed_slider = ctk.CTkSlider(params_layout, from_=20.0, to=500.0, number_of_steps=960, variable=self.speed_multiplier, command=self.update_speed_label)
+        self.speed_slider = ctk.CTkSlider(params_layout, from_=20.0, to=700.0, number_of_steps=960, variable=self.speed_multiplier, command=self.update_speed_label)
         self.speed_slider.pack(fill=ctk.X, pady=(0, 10))
 
         dest_layout = ctk.CTkFrame(params_layout, fg_color="transparent")
@@ -276,7 +276,7 @@ class TimelapseApp(ctk.CTk):
         self.summary_label.pack(side=ctk.LEFT)
         
         self.est_time_label = ctk.CTkLabel(stats_frame_top, text="Tiempo estimado: --:--:--", font=ctk.CTkFont(family="Google Sans", size=12, slant="italic", weight="bold"), text_color=ACCENT_COLOR)
-        self.est_time_label.pack(side=ctk.RIGHT)
+        self.est_time_label.pack(side=ctk.RIGHT, padx=(10, 0))
 
         tree_container = ctk.CTkFrame(list_card.content, fg_color="transparent")
         tree_container.pack(fill=ctk.BOTH, expand=True, pady=(0, 5))
