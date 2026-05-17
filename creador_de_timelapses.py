@@ -68,11 +68,14 @@ class HoverToolTip:
     def show_tooltip(self, event=None):
         if self.tooltip_window or not self.text:
             return
-        x, y, cx, cy = self.widget.bbox("insert")
-        x = x + self.widget.winfo_rootx() + 25
-        y = y + cy + self.widget.winfo_rooty() + 25
+        x = self.widget.winfo_rootx() + 20
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
         self.tooltip_window = tw = tk.Toplevel(self.widget)
         tw.wm_overrideredirect(True)
+        try:
+            tw.wm_attributes("-topmost", True)
+        except Exception:
+            pass
         tw.wm_geometry(f"+{x}+{y}")
         
         border = ctk.CTkFrame(tw, fg_color=BORDER_COLOR, corner_radius=6)
@@ -123,7 +126,7 @@ class PremiumCard(ctk.CTkFrame):
         if tooltip_text:
             info_lbl = ctk.CTkLabel(
                 header,
-                text="ℹ️",
+                text="ⓘ",
                 font=ctk.CTkFont(size=14),
                 text_color=FG_MUTED,
                 cursor="hand2"
@@ -207,7 +210,7 @@ class TimelapseApp(ctk.CTk):
         ctk.CTkLabel(title_box, text="Une y acelera fragmentos cronológicos en un solo timelapse fluido", font=ctk.CTkFont(family="Google Sans", size=13), text_color=FG_MUTED).pack(anchor="w")
 
         # Botón de ayuda global
-        self.btn_help = ctk.CTkButton(header_frame, text="ℹ️ Ayuda", width=80, fg_color="#E8F0FE", text_color=ACCENT_COLOR, hover_color="#D2E3FC", font=ctk.CTkFont(family="Google Sans", weight="bold"), command=self.show_global_help)
+        self.btn_help = ctk.CTkButton(header_frame, text="❔ Ayuda", width=80, fg_color="#E8F0FE", text_color=ACCENT_COLOR, hover_color="#D2E3FC", font=ctk.CTkFont(family="Google Sans", weight="bold"), command=self.show_global_help)
         self.btn_help.pack(side=ctk.RIGHT, anchor="n")
 
         # --- FILA SUPERIOR (Lado a Lado) ---
@@ -691,7 +694,7 @@ class TimelapseApp(ctk.CTk):
     def show_global_help(self):
         help_win = tk.Toplevel(self)
         help_win.title("Ayuda - Timelapse Creator")
-        help_win.geometry("550x370")
+        help_win.geometry("550x400")
         help_win.configure(bg=BG_CARD)
         help_win.resizable(False, False)
         help_win.transient(self)
