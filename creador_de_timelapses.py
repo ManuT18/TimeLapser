@@ -156,6 +156,8 @@ class TimelapseApp(ctk.CTk):
         self.speed_multiplier = ctk.DoubleVar(value=20.0)
         self.mute_audio = ctk.BooleanVar(value=True)
         self.ffmpeg_path = ctk.StringVar(value="ffmpeg")
+        self.speed_mode = ctk.StringVar(value="multi") # "multi" o "duration"
+        self.duration_var = ctk.StringVar(value="15")
         
         self.video_files = []
         self.total_original_duration_sec = 0.0  # Duración original precisa calculada
@@ -247,7 +249,24 @@ class TimelapseApp(ctk.CTk):
         params_layout = ctk.CTkFrame(params_card.content, fg_color="transparent")
         params_layout.pack(fill=ctk.X)
         
-        speed_header = ctk.CTkFrame(params_layout, fg_color="transparent")
+        # Selector de Modo de Velocidad
+        mode_layout = ctk.CTkFrame(params_layout, fg_color="transparent")
+        mode_layout.pack(fill=ctk.X, pady=(0, 10))
+        
+        self.mode_selector = ctk.CTkSegmentedButton(
+            mode_layout,
+            values=["Multiplicador", "Duración Exacta"],
+            command=self.toggle_speed_mode,
+            font=ctk.CTkFont(family="Google Sans", size=11, weight="bold")
+        )
+        self.mode_selector.set("Multiplicador")
+        self.mode_selector.pack(fill=ctk.X)
+        
+        # 1. Contenedor de Slider (Modo Multiplicador)
+        self.slider_container = ctk.CTkFrame(params_layout, fg_color="transparent")
+        self.slider_container.pack(fill=ctk.X)
+        
+        speed_header = ctk.CTkFrame(self.slider_container, fg_color="transparent")
         speed_header.pack(fill=ctk.X, pady=(0, 5))
         ctk.CTkLabel(speed_header, text="Velocidad:", font=ctk.CTkFont(family="Google Sans", weight="bold")).pack(side=ctk.LEFT)
         self.speed_val_label = ctk.CTkLabel(speed_header, text="20.0x", font=ctk.CTkFont(family="Google Sans", weight="bold"), text_color=ACCENT_COLOR)
@@ -255,8 +274,24 @@ class TimelapseApp(ctk.CTk):
         self.audio_check = ctk.CTkSwitch(speed_header, text="Silenciar audio", variable=self.mute_audio, font=ctk.CTkFont(family="Google Sans", size=12))
         self.audio_check.pack(side=ctk.RIGHT)
         
-        self.speed_slider = ctk.CTkSlider(params_layout, from_=20.0, to=700.0, number_of_steps=960, variable=self.speed_multiplier, command=self.update_speed_label)
+        self.speed_slider = ctk.CTkSlider(self.slider_container, from_=20.0, to=700.0, number_of_steps=680, variable=self.speed_multiplier, command=self.update_speed_label)
         self.speed_slider.pack(fill=ctk.X, pady=(0, 10))
+        
+        # 2. Contenedor de Duración Exacta
+        self.duration_container = ctk.CTkFrame(params_layout, fg_color="transparent")
+        
+        dur_header = ctk.CTkFrame(self.duration_container, fg_color="transparent")
+        dur_header.pack(fill=ctk.X, pady=(0, 5))
+        ctk.CTkLabel(dur_header, text="Duración (segundos):", font=ctk.CTkFont(family="Google Sans", weight="bold")).pack(side=ctk.LEFT)
+        self.dur_equiv_label = ctk.CTkLabel(dur_header, text="Equivale a: --x", font=ctk.CTkFont(family="Google Sans", weight="bold"), text_color=ACCENT_COLOR)
+        self.dur_equiv_label.pack(side=ctk.LEFT, padx=10)
+        
+        self.audio_check_dur = ctk.CTkSwitch(dur_header, text="Silenciar audio", variable=self.mute_audio, font=ctk.CTkFont(family="Google Sans", size=12))
+        self.audio_check_dur.pack(side=ctk.RIGHT)
+        
+        self.duration_entry = ctk.CTkEntry(self.duration_container, textvariable=self.duration_var, height=30, font=ctk.CTkFont(family="Google Sans", size=12))
+        self.duration_entry.pack(fill=ctk.X, pady=(0, 10))
+        self.duration_var.trace_add("write", lambda *args: self.update_duration_calculation())
 
         dest_layout = ctk.CTkFrame(params_layout, fg_color="transparent")
         dest_layout.pack(fill=ctk.X)
@@ -366,6 +401,43 @@ class TimelapseApp(ctk.CTk):
             self.est_time_label.configure(text=f"Tiempo estimado final: {formatted_time}", text_color=FG_TEXT)
         else:
             self.est_time_label.configure(text="Tiempo estimado: --:--:--", text_color=FG_MUTED)
+
+    def toggle_speed_mode(self, mode):
+        if mode == "Multiplicador":
+            self.speed_mode.set("multi")
+            self.duration_container.pack_forget()
+            self.slider_container.pack(fill=ctk.X)
+            self.update_speed_label(self.speed_multiplier.get())
+        else:
+            self.speed_mode.set("duration")
+            self.slider_container.pack_forget()
+            self.duration_container.pack(fill=ctk.X)
+            self.update_duration_calculation()
+
+    def update_duration_calculation(self):
+        try:
+            target_sec = float(self.duration_var.get())
+            if target_sec <= 0:
+                raise ValueError
+        except ValueError:
+            self.dur_equiv_label.configure(text="Equivale a: --x")
+            self.est_time_label.configure(text="Tiempo estimado: --:--:--", text_color=FG_MUTED)
+            return
+            
+        if self.total_original_duration_sec > 0:
+            equiv_multiplier = self.total_original_duration_sec / target_sec
+            self.dur_equiv_label.configure(text=f"Equivale a: {equiv_multiplier:.1f}x")
+            formatted_time = format_time(target_sec)
+            self.est_time_label.configure(text=f"Tiempo estimado: {formatted_time}", text_color=FG_TEXT)
+        else:
+            self.dur_equiv_label.configure(text="Equivale a: --x")
+            self.est_time_label.configure(text="Tiempo estimado: --:--:--", text_color=FG_MUTED)
+
+    def refresh_speed_or_duration(self):
+        if self.speed_mode.get() == "multi":
+            self.update_speed_label(self.speed_multiplier.get())
+        else:
+            self.update_duration_calculation()
 
     def console_write(self, text):
         """Escribe un mensaje de forma segura en la consola interna de texto con etiquetas de color."""
@@ -500,6 +572,14 @@ class TimelapseApp(ctk.CTk):
         if not self.video_files:
             messagebox.showerror("Error", "No hay archivos cargados.")
             return
+        if self.speed_mode.get() == "duration":
+            try:
+                target_sec = float(self.duration_var.get())
+                if target_sec <= 0:
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror("Error", "Ingrese una duración objetivo en segundos válida y mayor a 0.")
+                return
         if not self.ffmpeg_path.get():
             messagebox.showerror(
                 "FFmpeg no encontrado",
@@ -522,6 +602,9 @@ class TimelapseApp(ctk.CTk):
         self.dest_entry.configure(state="disabled")
         self.speed_slider.configure(state="disabled")
         self.audio_check.configure(state="disabled")
+        self.mode_selector.configure(state="disabled")
+        self.duration_entry.configure(state="disabled")
+        self.audio_check_dur.configure(state="disabled")
         self.progress_bar.set(0)
         self.progress_lbl.configure(text="0%")
         self.eta_label.configure(text="Tiempo estimado: Calculando...")
@@ -542,7 +625,17 @@ class TimelapseApp(ctk.CTk):
                     escaped_path = os.path.abspath(file_path).replace("\\", "/").replace("'", "'\\''")
                     f.write(f"file '{escaped_path}'\n")
 
-            multiplier = round(float(self.speed_multiplier.get()) * 2.0) / 2.0
+            if self.speed_mode.get() == "multi":
+                multiplier = round(float(self.speed_multiplier.get()) * 2.0) / 2.0
+            else:
+                try:
+                    target_sec = float(self.duration_var.get())
+                    if target_sec <= 0:
+                        raise ValueError
+                    multiplier = self.total_original_duration_sec / target_sec
+                except ValueError:
+                    self.log_queue.put(("[Error] Duración deseada inválida. Usando velocidad por defecto (20x).\n", None))
+                    multiplier = 20.0
             pts_ratio = 1.0 / multiplier
             video_filter = f"setpts={pts_ratio}*PTS"
             
@@ -637,7 +730,7 @@ class TimelapseApp(ctk.CTk):
                     self.btn_browse_dir.configure(state="normal")
                     self.video_files = []
                     self.total_original_duration_sec = 0.0
-                    self.update_speed_label(self.speed_multiplier.get())
+                    self.refresh_speed_or_duration()
                 elif msg == "UI_UPDATE_SCAN_SUCCESS":
                     root_folder = data
                     default_out = os.path.join(root_folder, "timelapse_generado.mp4")
@@ -653,7 +746,7 @@ class TimelapseApp(ctk.CTk):
                     self.console_write(f"[Info] Procesamiento completado. Duración exacta: {formatted_orig}\n")
                     self.btn_generate.configure(state="normal")
                     self.btn_browse_dir.configure(state="normal")
-                    self.update_speed_label(self.speed_multiplier.get())
+                    self.refresh_speed_or_duration()
                     
                 elif msg == "PROCESS_UPDATE":
                     percentage, current_processed, expected_dur, eta_text = data
@@ -748,6 +841,9 @@ class TimelapseApp(ctk.CTk):
         self.dest_entry.configure(state="normal")
         self.speed_slider.configure(state="normal")
         self.audio_check.configure(state="normal")
+        self.mode_selector.configure(state="normal")
+        self.duration_entry.configure(state="normal")
+        self.audio_check_dur.configure(state="normal")
         
         if self.progress_bar.get() >= 0.99:
             self.eta_label.configure(text="Tiempo estimado: COMPLETADO", text_color="#1E8E3E")
