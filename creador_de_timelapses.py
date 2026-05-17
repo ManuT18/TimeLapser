@@ -768,21 +768,6 @@ class TimelapseApp(ctk.CTk):
             pass
         self.after(100, self.process_queue)
 
-    def play_notification_sound(self, success=True):
-        """Reproduce un sonido de notificación premium usando winsound en Windows."""
-        try:
-            import winsound
-            if success:
-                # Éxito: Tres tonos ascendentes alegres y rápidos (Do - Mi - Sol)
-                winsound.Beep(523, 100) # C5
-                winsound.Beep(659, 100) # E5
-                winsound.Beep(784, 250) # G5
-            else:
-                # Error: Dos tonos graves descendentes (Fa# - Do#)
-                winsound.Beep(370, 180) # F#4
-                winsound.Beep(277, 350) # C#4
-        except Exception:
-            pass
 
     def show_global_help(self):
         help_win = tk.Toplevel(self)
@@ -848,12 +833,7 @@ class TimelapseApp(ctk.CTk):
         if self.progress_bar.get() >= 0.99:
             self.eta_label.configure(text="Tiempo estimado: COMPLETADO", text_color="#1E8E3E")
             self.btn_open_file.configure(state="normal")
-            self.play_notification_sound(success=True)
             messagebox.showinfo("Completado", f"Timelapse creado en:\n{self.output_file.get()}")
-        else:
-            if not self.was_cancelled:
-                self.play_notification_sound(success=False)
-
     def cancel_timelapse(self):
         if self.process and self.is_processing:
             if messagebox.askyesno("Confirmar Cancelación", "¿Abortar creación de timelapse?"):
